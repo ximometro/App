@@ -1,0 +1,1387 @@
+<!-- 
+    ╔══════════════════════╗
+    ║      Ximometro       ║
+    ║      App Unida       ║
+    ║   2025 ⚡🥷🏻👩🏻‍🎨   ║
+    ╚══════════════════════╝
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- PWA CONFIG -->
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Ximometro">
+
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" href="https://emojicdn.elk.sh/%E2%9A%A1?size=192">
+    <link rel="apple-touch-icon" href="https://emojicdn.elk.sh/%E2%9A%A1?size=192">
+    
+    <title>Ximometro App</title>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background 0.5s ease;
+        }
+
+        /* NAVEGACIÓN TABS */
+        .app-tabs {
+            display: flex;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #111;
+            border-top: 1px solid #333;
+            z-index: 1000;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 12px 5px;
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .tab-btn.active {
+            color: white;
+            background: #222;
+        }
+        
+        .tab-btn .tab-icon { font-size: 1.4em; }
+        
+        /* CONTENIDO DE TABS */
+        .tab-content {
+            display: none;
+            min-height: 100vh;
+            padding-bottom: 70px;
+        }
+        
+        .tab-content.active { display: block; }
+        
+        /* BOTÓN INSTALAR */
+        #install-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: #2E8B57;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            display: none;
+            z-index: 1001;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+        
+        /* HEADER COMÚN */
+        .tab-header {
+            text-align: center;
+            padding: 20px 20px 10px 20px;
+        }
+        
+        .tab-header h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        
+        .tab-header .tagline {
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+        
+        /* ESTILOS ESPECÍFICOS DE FONDO */
+        #tab-ximena .container {
+            background: radial-gradient(circle, #86a8e7, #86a1e8, #8998e9, #8e90e8, #9586e5, #9b84e2, #a183de, #a681db, #aa88d8, #ad8fd6, #b095d3, #b39cd0);
+        }
+        
+        #tab-rafa .container {
+            background: linear-gradient(135deg, #000000 0%, #2E8B57 100%);
+        }
+        
+        #tab-combinado .container {
+            background: linear-gradient(to right top, #2e8b57, #00957d, #009ea2, #00a4c2, #31a7d9, #54a8e4, #74a8ec, #92a8f0, #9ea7f6, #aba5fa, #b9a3fd, #c9a0ff);
+        }
+        
+        #tab-config .container { 
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); 
+        }
+
+        /* CONTENEDOR PRINCIPAL */
+        .container {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 70px);
+        }
+
+        /* BATTERY SECTIONS */
+        .battery-section {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            margin: 20px 0;
+        }
+
+        .battery-container {
+            position: relative;
+            width: 100px;
+            height: 250px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            border: 3px solid white;
+            overflow: hidden;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+
+        .battery-level {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(to top, #ff4444, #ffaa00, #ffff00, #88ff00);
+            height: 50%;
+            transition: height 1s ease;
+        }
+
+        .battery-percent {
+            position: absolute;
+            top: -35px;
+            width: 100%;
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .face-track {
+            position: relative;
+            width: 100px;
+            height: 250px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 2px dashed rgba(255,255,255,0.3);
+        }
+
+        .custom-face {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: transparent;
+            border: 3px solid gold;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: top 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            cursor: grab;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .custom-face:active { cursor: grabbing; }
+        .custom-face img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .default-face {
+            font-size: 40px;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+        }
+
+        .status-display {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 15px 0;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            text-align: center;
+        }
+
+        .battery-icon { font-size: 2em; margin: 10px 0; }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            max-width: 300px;
+            margin: 10px 0;
+        }
+
+        button {
+            padding: 12px;
+            font-size: 0.9em;
+            border: none;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: white;
+            transform: translateY(-2px);
+        }
+
+        .upload-section {
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .upload-btn {
+            background: rgba(76, 175, 80, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            display: inline-block;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .upload-btn:hover { background: rgba(76, 175, 80, 1); }
+        input[type="file"] { display: none; }
+
+        .manual-controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            justify-content: center;
+        }
+
+        .manual-btn {
+            background: rgba(255, 193, 7, 0.8);
+            color: #333;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 0.8em;
+        }
+
+        .sync-status {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        .emoji-options {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .emoji-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .emoji-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        /* VISTA COMBINADA */
+        .energy-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            width: 100%;
+        }
+
+        .energy-bar-container {
+            position: relative;
+            width: 140px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            border: 3px solid white;
+            overflow: hidden;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+
+        .energy-bar {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(to bottom, #00ff00, #ffff00, #ff4444);
+            height: 100%;
+        }
+
+        .marker {
+            position: absolute;
+            font-size: 2.5em;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
+            z-index: 10;
+            transition: top 0.5s ease;
+        }
+
+        .marker.rafa { left: 30%; transform: translateX(-50%); }
+        .marker.ximena { left: 70%; transform: translateX(-50%); }
+
+        .status-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .person-status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .person-emoji {
+            font-size: 2em;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+            min-width: 50px;
+        }
+
+        .person-info { text-align: left; flex: 1; }
+        .person-name {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+        .person-battery { font-size: 0.9em; opacity: 0.9; line-height: 1.4; }
+
+        /* CONFIGURACIÓN - VERSIÓN ELEGANTE */
+        .coming-soon-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .coming-soon-content {
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 25px;
+            padding: 50px 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .coming-soon-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #2E8B57, #86a8e7, #c9a0ff);
+            animation: shimmer 3s infinite linear;
+        }
+
+        .coming-soon-icon {
+            font-size: 5em;
+            margin-bottom: 25px;
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5));
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .coming-soon-title {
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 15px;
+            background: linear-gradient(90deg, #fff, #86a8e7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .coming-soon-subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+            line-height: 1.6;
+            margin-bottom: 35px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .coming-soon-badge {
+            display: inline-block;
+            background: rgba(46, 139, 87, 0.2);
+            color: #4CAF50;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .coming-soon-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .feature {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 15px;
+            padding: 25px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .feature:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            font-size: 1em;
+            margin-bottom: 8px;
+        }
+
+        .feature-desc {
+            font-size: 0.85em;
+            opacity: 0.7;
+            line-height: 1.4;
+        }
+
+        .coming-soon-footer {
+            margin-top: 40px;
+            padding-top: 25px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85em;
+            opacity: 0.7;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 480px) {
+            .battery-section { gap: 20px; }
+            .battery-container, .face-track { width: 80px; height: 200px; }
+            .energy-bar-container { width: 120px; height: 250px; }
+            .custom-face { width: 60px; height: 60px; }
+            .marker { font-size: 2em; }
+            .tab-header h1 { font-size: 1.8em; }
+            .emoji-btn { width: 45px; height: 45px; font-size: 1.3em; }
+            .tab-btn { padding: 10px 3px; font-size: 0.7em; }
+            .tab-btn .tab-icon { font-size: 1.2em; }
+            
+            .coming-soon-content {
+                padding: 30px 20px;
+                margin: 0 15px;
+            }
+            
+            .coming-soon-title {
+                font-size: 1.8em;
+            }
+            
+            .coming-soon-features {
+                grid-template-columns: 1fr;
+            }
+            
+            .coming-soon-icon {
+                font-size: 4em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- BOTÓN INSTALAR APP -->
+    <button id="install-btn">📱 Instalar App</button>
+    
+    <!-- PESTAÑA XIMENA -->
+    <div class="tab-content active" id="tab-ximena">
+        <div class="container">
+            <div class="tab-header">
+                <h1>🥷🏻 Ximometro</h1>
+                <p class="tagline">Tu energía, tu espacio ✨</p>
+                <div class="sync-status" id="ximenaSyncStatus">🟡 Conectando...</div>
+            </div>
+            
+            <div class="battery-section">
+                <div class="battery-container">
+                    <div class="battery-percent" id="ximenaBatteryPercent">50%</div>
+                    <div class="battery-level" id="ximenaBatteryLevel"></div>
+                </div>
+
+                <div class="face-track" id="ximenaFaceTrack">
+                    <div class="custom-face" id="ximenaCustomFace" style="top: 125px;">
+                        <div class="default-face">🥷🏻</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="battery-icon" id="ximenaBatteryIcon">🔋</div>
+
+            <div class="status-display" id="ximenaStatus">Ximena está: Conectada 💫</div>
+
+            <div class="upload-section">
+                <label for="ximenaFaceUpload" class="upload-btn">📸 Subir PNG de Ximena</label>
+                <input type="file" id="ximenaFaceUpload" accept="image/*">
+                <div class="sync-status">(Solo tú ves esta imagen)</div>
+            </div>
+
+            <div class="emoji-options">
+                <div class="emoji-btn" onclick="ximenaSetEmoji('🥷🏻')">🥷🏻</div>
+                <div class="emoji-btn" onclick="ximenaSetEmoji('👩🏻')">👩🏻</div>
+                <div class="emoji-btn" onclick="ximenaSetEmoji('🕵🏻‍♀️')">🕵🏻‍♀️</div>
+                <div class="emoji-btn" onclick="ximenaSetEmoji('👩🏻‍🎤')">👩🏻‍🎤</div>
+                <div class="emoji-btn" onclick="ximenaSetEmoji('👩🏻‍🎨')">👩🏻‍🎨</div>
+            </div>
+
+            <div class="manual-controls">
+                <button class="manual-btn" onclick="ximenaAdjustFace(-10)">⬆️ Subir Cara</button>
+                <button class="manual-btn" onclick="ximenaAdjustFace(10)">⬇️ Bajar Cara</button>
+            </div>
+
+            <div class="controls">
+                <button onclick="ximenaSetBattery(100)">🔋 Llena</button>
+                <button onclick="ximenaSetBattery(75)">⚡ Alta</button>
+                <button onclick="ximenaSetBattery(50)">🔌 Media</button>
+                <button onclick="ximenaSetBattery(25)">🪫 Baja</button>
+                <button onclick="ximenaSetBattery(0)">❌ Ausente</button>
+            </div>
+            
+            <div class="sync-status">Última actualización: <span id="ximenaLastUpdate">Cargando...</span></div>
+        </div>
+    </div>
+    
+    <!-- PESTAÑA RAFA -->
+    <div class="tab-content" id="tab-rafa">
+        <div class="container">
+            <div class="tab-header">
+                <h1>🧔🏻 Rafametro</h1>
+                <p class="tagline">Tu energía, tu espacio ✨</p>
+                <div class="sync-status" id="rafaSyncStatus">🟡 Conectando...</div>
+            </div>
+            
+            <div class="battery-section">
+                <div class="battery-container">
+                    <div class="battery-percent" id="rafaBatteryPercent">50%</div>
+                    <div class="battery-level" id="rafaBatteryLevel"></div>
+                </div>
+
+                <div class="face-track" id="rafaFaceTrack">
+                    <div class="custom-face" id="rafaCustomFace" style="top: 125px;">
+                        <div class="default-face">🦸🏻</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="battery-icon" id="rafaBatteryIcon">🔋</div>
+
+            <div class="status-display" id="rafaStatus">Rafa está: Conectado 💫</div>
+
+            <div class="upload-section">
+                <label for="rafaFaceUpload" class="upload-btn">📸 Subir PNG de Rafa</label>
+                <input type="file" id="rafaFaceUpload" accept="image/*">
+                <div class="sync-status">(Solo tú ves esta imagen)</div>
+            </div>
+
+            <div class="emoji-options">
+                <div class="emoji-btn" onclick="rafaSetEmoji('🦸🏻')">🦸🏻</div>
+                <div class="emoji-btn" onclick="rafaSetEmoji('🧔🏻')">🧔🏻</div>
+                <div class="emoji-btn" onclick="rafaSetEmoji('🎸')">🎸</div>
+                <div class="emoji-btn" onclick="rafaSetEmoji('🧟')">🧟</div>
+                <div class="emoji-btn" onclick="rafaSetEmoji('😊')">😊</div>
+            </div>
+
+            <div class="manual-controls">
+                <button class="manual-btn" onclick="rafaAdjustFace(-10)">⬆️ Subir Cara</button>
+                <button class="manual-btn" onclick="rafaAdjustFace(10)">⬇️ Bajar Cara</button>
+            </div>
+
+            <div class="controls">
+                <button onclick="rafaSetBattery(100)">🔋 Llena</button>
+                <button onclick="rafaSetBattery(75)">⚡ Alta</button>
+                <button onclick="rafaSetBattery(50)">🔌 Media</button>
+                <button onclick="rafaSetBattery(25)">🪫 Baja</button>
+                <button onclick="rafaSetBattery(0)">❌ Ausente</button>
+            </div>
+            
+            <div class="sync-status">Última actualización: <span id="rafaLastUpdate">Cargando...</span></div>
+        </div>
+    </div>
+    
+    <!-- PESTAÑA COMBINADO -->
+    <div class="tab-content" id="tab-combinado">
+        <div class="container">
+            <div class="tab-header">
+                <h1>⚡ Energías</h1>
+                <p class="tagline">Vista combinada ✨</p>
+                <div class="sync-status" id="combinedSyncStatus">🟡 Conectando...</div>
+            </div>
+            
+            <div class="energy-section">
+                <div class="energy-bar-container">
+                    <div class="energy-bar" id="combinedEnergyBar"></div>
+                    <div class="marker rafa" id="combinedRafaMarker" style="top: 150px;">🧔🏻</div>
+                    <div class="marker ximena" id="combinedXimenaMarker" style="top: 150px;">🥷🏻</div>
+                </div>
+            </div>
+
+            <div class="status-container">
+                <div class="person-status">
+                    <div class="person-emoji" id="combinedRafaEmoji">🧔🏻</div>
+                    <div class="person-info">
+                        <div class="person-name">Rafa</div>
+                        <div class="person-battery" id="combinedRafaBattery">Cargando...</div>
+                    </div>
+                </div>
+
+                <div class="person-status">
+                    <div class="person-emoji" id="combinedXimenaEmoji">🥷🏻</div>
+                    <div class="person-info">
+                        <div class="person-name">Ximena</div>
+                        <div class="person-battery" id="combinedXimenaBattery">Cargando...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sync-status bottom">Última actualización: <span id="combinedLastUpdate">Cargando...</span></div>
+        </div>
+    </div>
+    
+    <!-- PESTAÑA CONFIGURACIÓN - VERSIÓN ELEGANTE -->
+    <div class="tab-content" id="tab-config">
+        <div class="container">
+            <div class="tab-header">
+                <h1>⚙️ Configuración</h1>
+                <p class="tagline">Próximas funcionalidades</p>
+            </div>
+            
+            <div class="coming-soon-container">
+                <div class="coming-soon-content">
+                    <div class="coming-soon-icon">🚀</div>
+                    <h1 class="coming-soon-title">Próximamente</h1>
+                    <div class="coming-soon-badge">En desarrollo</div>
+                    
+                    <p class="coming-soon-subtitle">
+                        Estamos trabajando en funcionalidades avanzadas para mejorar tu experiencia.
+                        Mientras tanto, disfruta de la conexión especial que esta app te ofrece.
+                    </p>
+                    
+                    <div class="coming-soon-features">
+                        <div class="feature">
+                            <span class="feature-icon">🔔</span>
+                            <div class="feature-title">Notificaciones</div>
+                            <div class="feature-desc">Alertas inteligentes en tiempo real</div>
+                        </div>
+                        
+                        <div class="feature">
+                            <span class="feature-icon">🎨</span>
+                            <div class="feature-title">Temas</div>
+                            <div class="feature-desc">Personaliza colores y estilos</div>
+                        </div>
+                        
+                        <div class="feature">
+                            <span class="feature-icon">⚡</span>
+                            <div class="feature-title">Sincronización</div>
+                            <div class="feature-desc">Configuración en la nube</div>
+                        </div>
+                        
+                        <div class="feature">
+                            <span class="feature-icon">🔒</span>
+                            <div class="feature-title">Privacidad</div>
+                            <div class="feature-desc">Control total de tus datos</div>
+                        </div>
+                    </div>
+                    
+                    <div class="coming-soon-footer">
+                        <strong>Ximometro App v1.1</strong><br>
+                        Conectando energías especiales desde 2024<br>
+                        <small>✨ Desarrollado con ⚡ para conexiones únicas</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- NAVEGACIÓN INFERIOR -->
+    <nav class="app-tabs">
+        <button class="tab-btn active" data-tab="ximena">
+            <span class="tab-icon">🥷🏻</span>
+            <span class="tab-text">Xime</span>
+        </button>
+        <button class="tab-btn" data-tab="rafa">
+            <span class="tab-icon">🧔🏻</span>
+            <span class="tab-text">Rafa</span>
+        </button>
+        <button class="tab-btn" data-tab="combinado">
+            <span class="tab-icon">⚡</span>
+            <span class="tab-text">Ambos</span>
+        </button>
+        <button class="tab-btn" data-tab="config">
+            <span class="tab-icon">⚙️</span>
+            <span class="tab-text">Ajustes</span>
+        </button>
+    </nav>
+
+    <!-- SCRIPTS -->
+    <script>
+        // =============================================
+        // CONFIGURACIÓN GLOBAL
+        // =============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyC9SZzsrV-xYwQsREScGt0sT6VSK6mPhVw",
+            authDomain: "ximometro1.firebaseapp.com",
+            databaseURL: "https://ximometro1-default-rtdb.firebaseio.com",
+            projectId: "ximometro1",
+            storageBucket: "ximometro1.firebasestorage.app",
+            messagingSenderId: "417707299028",
+            appId: "1:417707299028:web:7f317639f4f137fd45eb41"
+        };
+
+        // =============================================
+        // NAVEGACIÓN ENTRE TABS
+        // =============================================
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                btn.classList.add('active');
+                const tabId = btn.getAttribute('data-tab');
+                document.getElementById(`tab-${tabId}`).classList.add('active');
+                
+                const backgrounds = {
+                    'ximena': 'radial-gradient(circle, #86a8e7, #86a1e8, #8998e9, #8e90e8, #9586e5, #9b84e2, #a183de, #a681db, #aa88d8, #ad8fd6, #b095d3, #b39cd0)',
+                    'rafa': 'linear-gradient(135deg, #000000 0%, #2E8B57 100%)',
+                    'combinado': 'linear-gradient(to right top, #2e8b57, #00957d, #009ea2, #00a4c2, #31a7d9, #54a8e4, #74a8ec, #92a8f0, #9ea7f6, #aba5fa, #b9a3fd, #c9a0ff)',
+                    'config': 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)'
+                };
+                document.querySelector('.container').style.background = backgrounds[tabId];
+                
+                if (tabId === 'combinado') {
+                    setTimeout(() => { combinedUpdateDisplay(); }, 100);
+                }
+            });
+        });
+
+        // =============================================
+        // PWA - INSTALACIÓN
+        // =============================================
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('install-btn').style.display = 'block';
+        });
+        
+        document.getElementById('install-btn').addEventListener('click', () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(choiceResult => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('App instalada');
+                        document.getElementById('install-btn').style.display = 'none';
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        });
+
+        // =============================================
+        // XIMOMETRO - LÓGICA
+        // =============================================
+        let ximenaDatabase;
+        let ximenaCurrentBatteryLevel = 50;
+        let ximenaFacePosition = 125;
+        let ximenaCurrentEmoji = '🥷🏻';
+        let ximenaIsSyncing = false;
+
+        try {
+            const ximenaApp = firebase.initializeApp(firebaseConfig, 'ximenaApp');
+            ximenaDatabase = firebase.database(ximenaApp);
+            console.log("✅ Firebase Ximena conectado");
+        } catch (error) {
+            console.log("Error Firebase Ximena:", error);
+        }
+
+        function ximenaSetBattery(percentage) {
+            const validPercentage = Math.max(0, Math.min(100, percentage));
+            ximenaCurrentBatteryLevel = validPercentage;
+            ximenaUpdateDisplay();
+            ximenaSaveToDatabase(ximenaCurrentBatteryLevel, ximenaFacePosition);
+        }
+
+        function ximenaUpdateDisplay() {
+            document.getElementById('ximenaBatteryLevel').style.height = ximenaCurrentBatteryLevel + '%';
+            document.getElementById('ximenaBatteryPercent').textContent = ximenaCurrentBatteryLevel + '%';
+            ximenaUpdateBatteryIcon(ximenaCurrentBatteryLevel);
+            ximenaUpdateStatus(ximenaCurrentBatteryLevel);
+            ximenaMoveFaceWithBattery(ximenaCurrentBatteryLevel);
+        }
+
+        function ximenaUpdateBatteryIcon(percentage) {
+            let icon, color;
+            if (percentage >= 80) { icon = '🔋'; color = 'linear-gradient(to top, #00ff00, #88ff00)'; }
+            else if (percentage >= 60) { icon = '🔋'; color = 'linear-gradient(to top, #aaff00, #ffff00)'; }
+            else if (percentage >= 40) { icon = '🔋'; color = 'linear-gradient(to top, #ffff00, #ffaa00)'; }
+            else if (percentage >= 20) { icon = '🪫'; color = 'linear-gradient(to top, #ffaa00, #ff4444)'; }
+            else { icon = '🪫'; color = 'linear-gradient(to top, #ff4444, #cc0000)'; }
+            document.getElementById('ximenaBatteryIcon').textContent = icon;
+            document.getElementById('ximenaBatteryLevel').style.background = color;
+        }
+
+        function ximenaUpdateStatus(percentage) {
+            let status, emoji;
+            if (percentage >= 80) { status = "¡Presente al máximo! 🎯"; emoji = "🌟"; }
+            else if (percentage >= 60) { status = "Buen nivel de presencia ✨"; emoji = "⭐"; }
+            else if (percentage >= 40) { status = "Presencia moderada 💫"; emoji = "🌀"; }
+            else if (percentage >= 20) { status = "Poca presencia 📉"; emoji = "🌫️"; }
+            else { status = "Ausente 💤"; emoji = "😴"; }
+            document.getElementById('ximenaStatus').innerHTML = `Ximena está: <br><strong>${status}</strong> ${emoji}`;
+        }
+
+        function ximenaMoveFaceWithBattery(percentage) {
+            const faceTrack = document.getElementById('ximenaFaceTrack');
+            const customFace = document.getElementById('ximenaCustomFace');
+            const trackHeight = faceTrack.offsetHeight;
+            const faceHeight = customFace.offsetHeight;
+            const maxPosition = trackHeight - faceHeight;
+            customFace.style.transition = 'top 0.5s ease';
+            ximenaFacePosition = maxPosition - (percentage / 100) * maxPosition;
+            customFace.style.top = ximenaFacePosition + 'px';
+        }
+
+        function ximenaAdjustFace(change) {
+            const faceTrack = document.getElementById('ximenaFaceTrack');
+            const customFace = document.getElementById('ximenaCustomFace');
+            const trackHeight = faceTrack.offsetHeight;
+            const faceHeight = customFace.offsetHeight;
+            const maxPosition = trackHeight - faceHeight;
+            ximenaFacePosition += change;
+            if (ximenaFacePosition < 0) ximenaFacePosition = 0;
+            if (ximenaFacePosition > maxPosition) ximenaFacePosition = maxPosition;
+            customFace.style.top = ximenaFacePosition + 'px';
+            const calculatedBattery = 100 - Math.round((ximenaFacePosition / maxPosition) * 100);
+            ximenaCurrentBatteryLevel = calculatedBattery;
+            ximenaUpdateDisplay();
+            ximenaSaveToDatabase(ximenaCurrentBatteryLevel, ximenaFacePosition);
+        }
+
+        function ximenaSetEmoji(emoji) {
+            ximenaCurrentEmoji = emoji;
+            document.getElementById('ximenaCustomFace').innerHTML = `<div class="default-face">${emoji}</div>`;
+            ximenaSaveToDatabase(ximenaCurrentBatteryLevel, ximenaFacePosition);
+            localStorage.setItem('ximenaSelectedEmoji', emoji);
+            localStorage.removeItem('ximenaFace');
+            console.log("✅ Emoji Ximena cambiado a:", emoji);
+        }
+
+        function ximenaSaveToDatabase(batteryLevel, facePosition) {
+            if (!ximenaDatabase) {
+                document.getElementById('ximenaSyncStatus').textContent = "🟡 Modo local - Sin sincronización";
+                return;
+            }
+
+            ximenaIsSyncing = true;
+            const now = new Date();
+            const timeString = now.toLocaleString('es-MX', { 
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+
+            const data = {
+                battery: batteryLevel,
+                facePosition: Math.round(facePosition),
+                selectedEmoji: ximenaCurrentEmoji,
+                lastUpdated: timeString,
+                timestamp: now.getTime()
+            };
+            
+            ximenaDatabase.ref('ximometro/ximena/status').set(data)
+            .then(() => {
+                document.getElementById('ximenaSyncStatus').textContent = "🟢 Sincronizado";
+                document.getElementById('ximenaSyncStatus').style.color = "#90EE90";
+                document.getElementById('ximenaLastUpdate').textContent = timeString;
+            })
+            .catch((error) => {
+                document.getElementById('ximenaSyncStatus').textContent = "🔴 Error al sincronizar";
+                document.getElementById('ximenaSyncStatus').style.color = "#FF6B6B";
+                console.error("Error Firebase:", error);
+            })
+            .finally(() => { ximenaIsSyncing = false; });
+        }
+
+        function ximenaLoadFromDatabase() {
+            if (!ximenaDatabase) {
+                document.getElementById('ximenaSyncStatus').textContent = "🟡 Modo local - Los cambios son privados";
+                return;
+            }
+            
+            const savedFace = localStorage.getItem('ximenaFace');
+            let hasImage = false;
+            
+            if (savedFace) {
+                document.getElementById('ximenaCustomFace').innerHTML = `<img src="${savedFace}" alt="Ximena">`;
+                hasImage = true;
+                console.log("✅ Imagen Ximena cargada desde localStorage");
+            }
+
+            ximenaDatabase.ref('ximometro/ximena/status').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && !ximenaIsSyncing) {
+                    ximenaCurrentBatteryLevel = data.battery !== undefined ? data.battery : 0;
+                    ximenaCurrentEmoji = data.selectedEmoji || '🥷🏻';
+                    
+                    setTimeout(() => { ximenaUpdateDisplay(); }, 100);
+                    document.getElementById('ximenaLastUpdate').textContent = data.lastUpdated || "Ahora";
+                    
+                    if (!hasImage) {
+                        document.getElementById('ximenaCustomFace').innerHTML = `<div class="default-face">${ximenaCurrentEmoji}</div>`;
+                        console.log("✅ Emoji Ximena actualizado desde Firebase");
+                    } else {
+                        console.log("ℹ️ Imagen Ximena presente - emoji ignorado");
+                    }
+                    
+                    document.getElementById('ximenaSyncStatus').textContent = "🟢 Sincronizado en tiempo real";
+                    document.getElementById('ximenaSyncStatus').style.color = "#90EE90";
+                }
+            }, (error) => {
+                document.getElementById('ximenaSyncStatus').textContent = "🔴 Error de conexión";
+                document.getElementById('ximenaSyncStatus').style.color = "#FF6B6B";
+            });
+        }
+
+        document.getElementById('ximenaFaceUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('ximenaCustomFace').innerHTML = `<img src="${e.target.result}" alt="Ximena">`;
+                    localStorage.setItem('ximenaFace', e.target.result);
+                    localStorage.removeItem('ximenaSelectedEmoji');
+                    console.log("✅ Imagen Ximena guardada en localStorage");
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // =============================================
+        // RAFA METRO - LÓGICA
+        // =============================================
+        let rafaDatabase;
+        let rafaCurrentBatteryLevel = 50;
+        let rafaFacePosition = 125;
+        let rafaCurrentEmoji = '🦸🏻';
+        let rafaIsSyncing = false;
+
+        try {
+            const rafaApp = firebase.initializeApp(firebaseConfig, 'rafaApp');
+            rafaDatabase = firebase.database(rafaApp);
+            console.log("✅ Firebase Rafa conectado");
+        } catch (error) {
+            console.log("Error Firebase Rafa:", error);
+        }
+
+        function rafaSetBattery(percentage) {
+            const validPercentage = Math.max(0, Math.min(100, percentage));
+            rafaCurrentBatteryLevel = validPercentage;
+            rafaUpdateDisplay();
+            rafaSaveToDatabase(rafaCurrentBatteryLevel, rafaFacePosition);
+        }
+
+        function rafaUpdateDisplay() {
+            document.getElementById('rafaBatteryLevel').style.height = rafaCurrentBatteryLevel + '%';
+            document.getElementById('rafaBatteryPercent').textContent = rafaCurrentBatteryLevel + '%';
+            rafaUpdateBatteryIcon(rafaCurrentBatteryLevel);
+            rafaUpdateStatus(rafaCurrentBatteryLevel);
+            rafaMoveFaceWithBattery(rafaCurrentBatteryLevel);
+        }
+
+        function rafaMoveFaceWithBattery(percentage) {
+            const faceTrack = document.getElementById('rafaFaceTrack');
+            const customFace = document.getElementById('rafaCustomFace');
+            if (!faceTrack || !customFace) {
+                console.error("❌ No se encontraron elementos para mover cara de Rafa");
+                return;
+            }
+            const trackHeight = faceTrack.offsetHeight || 250;
+            const faceHeight = customFace.offsetHeight || 80;
+            const maxPosition = trackHeight - faceHeight;
+            rafaFacePosition = maxPosition - (percentage / 100) * maxPosition;
+            customFace.style.top = rafaFacePosition + 'px';
+        }
+
+        function rafaUpdateBatteryIcon(percentage) {
+            let icon, color;
+            if (percentage >= 80) { icon = '🔋'; color = 'linear-gradient(to top, #00ff00, #88ff00)'; }
+            else if (percentage >= 60) { icon = '🔋'; color = 'linear-gradient(to top, #aaff00, #ffff00)'; }
+            else if (percentage >= 40) { icon = '🔋'; color = 'linear-gradient(to top, #ffff00, #ffaa00)'; }
+            else if (percentage >= 20) { icon = '🪫'; color = 'linear-gradient(to top, #ffaa00, #ff4444)'; }
+            else { icon = '🪫'; color = 'linear-gradient(to top, #ff4444, #cc0000)'; }
+            document.getElementById('rafaBatteryIcon').textContent = icon;
+            document.getElementById('rafaBatteryLevel').style.background = color;
+        }
+
+        function rafaUpdateStatus(percentage) {
+            let status, emoji;
+            if (percentage >= 80) { status = "¡Energía al máximo! 🚀"; emoji = "🦸🏻"; }
+            else if (percentage >= 60) { status = "Buen nivel de energía ✨"; emoji = "⭐"; }
+            else if (percentage >= 40) { status = "Energía moderada 💫"; emoji = "🌀"; }
+            else if (percentage >= 20) { status = "Poca energía 📉"; emoji = "🌫️"; }
+            else { status = "Sin energía 💤"; emoji = "😴"; }
+            document.getElementById('rafaStatus').innerHTML = `Rafa está: <br><strong>${status}</strong> ${emoji}`;
+        }
+
+        function rafaAdjustFace(change) {
+            const faceTrack = document.getElementById('rafaFaceTrack');
+            const customFace = document.getElementById('rafaCustomFace');
+            const trackHeight = faceTrack.offsetHeight || 250;
+            const faceHeight = customFace.offsetHeight || 80;
+            const maxPosition = trackHeight - faceHeight;
+            rafaFacePosition += change;
+            if (rafaFacePosition < 0) rafaFacePosition = 0;
+            if (rafaFacePosition > maxPosition) rafaFacePosition = maxPosition;
+            customFace.style.top = rafaFacePosition + 'px';
+            const calculatedBattery = 100 - Math.round((rafaFacePosition / maxPosition) * 100);
+            rafaCurrentBatteryLevel = calculatedBattery;
+            rafaUpdateDisplay();
+            rafaSaveToDatabase(rafaCurrentBatteryLevel, rafaFacePosition);
+        }
+
+        function rafaSetEmoji(emoji) {
+            rafaCurrentEmoji = emoji;
+            document.getElementById('rafaCustomFace').innerHTML = `<div class="default-face">${emoji}</div>`;
+            rafaSaveToDatabase(rafaCurrentBatteryLevel, rafaFacePosition);
+            localStorage.setItem('rafaSelectedEmoji', emoji);
+            localStorage.removeItem('rafaFace');
+            console.log("✅ Emoji Rafa cambiado a:", emoji);
+        }
+
+        function rafaSaveToDatabase(batteryLevel, facePosition) {
+            if (!rafaDatabase) {
+                document.getElementById('rafaSyncStatus').textContent = "🟡 Modo local - Sin sincronización";
+                return;
+            }
+
+            rafaIsSyncing = true;
+            const now = new Date();
+            const timeString = now.toLocaleString('es-MX', { 
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+
+            const data = {
+                battery: batteryLevel,
+                facePosition: Math.round(facePosition),
+                selectedEmoji: rafaCurrentEmoji,
+                lastUpdated: timeString,
+                timestamp: now.getTime()
+            };
+            
+            rafaDatabase.ref('ximometro/rafa/status').set(data)
+            .then(() => {
+                document.getElementById('rafaSyncStatus').textContent = "🟢 Sincronizado";
+                document.getElementById('rafaSyncStatus').style.color = "#90EE90";
+                document.getElementById('rafaLastUpdate').textContent = timeString;
+            })
+            .catch((error) => {
+                document.getElementById('rafaSyncStatus').textContent = "🔴 Error al sincronizar";
+                document.getElementById('rafaSyncStatus').style.color = "#FF6B6B";
+                console.error("Error Firebase:", error);
+            })
+            .finally(() => { rafaIsSyncing = false; });
+        }
+
+        function rafaLoadFromDatabase() {
+            if (!rafaDatabase) {
+                document.getElementById('rafaSyncStatus').textContent = "🟡 Modo local - Los cambios son privados";
+                return;
+            }
+            
+            const savedFace = localStorage.getItem('rafaFace');
+            let hasImage = false;
+            
+            if (savedFace) {
+                document.getElementById('rafaCustomFace').innerHTML = `<img src="${savedFace}" alt="Rafa">`;
+                hasImage = true;
+                console.log("✅ Imagen Rafa cargada desde localStorage");
+            }
+
+            rafaDatabase.ref('ximometro/rafa/status').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && !rafaIsSyncing) {
+                    rafaCurrentBatteryLevel = data.battery !== undefined ? data.battery : 0;
+                    rafaCurrentEmoji = data.selectedEmoji || '🦸🏻';
+                    rafaMoveFaceWithBattery(rafaCurrentBatteryLevel);
+                    setTimeout(() => { rafaUpdateDisplay(); }, 100);
+                    document.getElementById('rafaLastUpdate').textContent = data.lastUpdated || "Ahora";
+                    
+                    if (!hasImage) {
+                        document.getElementById('rafaCustomFace').innerHTML = `<div class="default-face">${rafaCurrentEmoji}</div>`;
+                        console.log("✅ Emoji Rafa actualizado desde Firebase");
+                    } else {
+                        console.log("ℹ️ Imagen Rafa presente - emoji ignorado");
+                    }
+                    
+                    document.getElementById('rafaSyncStatus').textContent = "🟢 Sincronizado en tiempo real";
+                    document.getElementById('rafaSyncStatus').style.color = "#90EE90";
+                }
+            }, (error) => {
+                console.error("❌ Error Firebase Rafa:", error);
+                document.getElementById('rafaSyncStatus').textContent = "🔴 Error de conexión";
+                document.getElementById('rafaSyncStatus').style.color = "#FF6B6B";
+            });
+        }
+
+        document.getElementById('rafaFaceUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('rafaCustomFace').innerHTML = `<img src="${e.target.result}" alt="Rafa">`;
+                    localStorage.setItem('rafaFace', e.target.result);
+                    localStorage.removeItem('rafaSelectedEmoji');
+                    console.log("✅ Imagen Rafa guardada en localStorage");
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // =============================================
+        // VISTA COMBINADA
+        // =============================================
+        let combinedDatabase;
+        let combinedRafaData = { battery: 50, emoji: '🦸🏻' };
+        let combinedXimenaData = { battery: 50, emoji: '🥷🏻' };
+
+        try {
+            const combinedApp = firebase.initializeApp(firebaseConfig, 'combinedApp');
+            combinedDatabase = firebase.database(combinedApp);
+            console.log("Firebase Vista Combinada conectado");
+        } catch (error) {
+            console.log("Error Firebase Vista Combinada:", error);
+        }
+
+        function combinedLoadFromDatabase() {
+            if (!combinedDatabase) {
+                document.getElementById('combinedSyncStatus').textContent = "🟡 Modo local - Sin sincronización";
+                return;
+            }
+            
+            combinedDatabase.ref('ximometro/rafa/status').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    combinedRafaData = { battery: data.battery || 0, emoji: data.selectedEmoji || '🦸🏻' };
+                    combinedUpdateDisplay();
+                    combinedUpdateLastUpdate();
+                }
+            });
+
+            combinedDatabase.ref('ximometro/ximena/status').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    combinedXimenaData = { battery: data.battery || 0, emoji: data.selectedEmoji || '🥷🏻' };
+                    combinedUpdateDisplay();
+                    combinedUpdateLastUpdate();
+                }
+            });
+        }
+
+        function combinedUpdateDisplay() {
+            const barHeight = 300;
+            const markerHeight = 60;
+            const rafaPosition = Math.max(10, Math.min(barHeight - markerHeight - 10, 
+                (barHeight - markerHeight) - ((combinedRafaData.battery / 100) * (barHeight - markerHeight))));
+            const ximenaPosition = Math.max(10, Math.min(barHeight - markerHeight - 10,
+                (barHeight - markerHeight) - ((combinedXimenaData.battery / 100) * (barHeight - markerHeight))));
+            
+            document.getElementById('combinedRafaMarker').style.top = rafaPosition + 'px';
+            document.getElementById('combinedXimenaMarker').style.top = ximenaPosition + 'px';
+            document.getElementById('combinedRafaMarker').textContent = combinedRafaData.emoji;
+            document.getElementById('combinedRafaEmoji').textContent = combinedRafaData.emoji;
+            document.getElementById('combinedXimenaMarker').textContent = combinedXimenaData.emoji;
+            document.getElementById('combinedXimenaEmoji').textContent = combinedXimenaData.emoji;
+            document.getElementById('combinedRafaBattery').innerHTML = getCombinedBatteryText(combinedRafaData.battery, 'Rafa');
+            document.getElementById('combinedXimenaBattery').innerHTML = getCombinedBatteryText(combinedXimenaData.battery, 'Ximena');
+            document.getElementById('combinedSyncStatus').textContent = "🟢 Sincronizado en tiempo real";
+            document.getElementById('combinedSyncStatus').style.color = "#90EE90";
+        }
+
+        function getCombinedBatteryText(percentage, name) {
+            let status, emoji;
+            if (percentage >= 80) { status = "¡Energía al máximo!"; emoji = name === 'Rafa' ? "🚀" : "🎯"; }
+            else if (percentage >= 60) { status = "Buen nivel de energía"; emoji = "✨"; }
+            else if (percentage >= 40) { status = "Energía moderada"; emoji = "💫"; }
+            else if (percentage >= 20) { status = "Poca energía"; emoji = "🌫️"; }
+            else { status = "Sin energía"; emoji = "💤"; }
+            return `<strong>${percentage}%</strong> - ${status} ${emoji}`;
+        }
+
+        function combinedUpdateLastUpdate() {
+            const now = new Date();
+            const timeString = now.toLocaleString('es-MX', { 
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+            document.getElementById('combinedLastUpdate').textContent = timeString;
+        }
+
+        // =============================================
+        // INICIALIZACIÓN Y CARGA
+        // =============================================
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                ximenaUpdateDisplay();
+                rafaUpdateDisplay();
+                ximenaLoadFromDatabase();
+                rafaLoadFromDatabase();
+                combinedLoadFromDatabase();
+                
+                if ('Notification' in window && Notification.permission === 'default') {
+                    setTimeout(() => { Notification.requestPermission(); }, 1000);
+                }
+                
+                initializeFaceDrag('ximena');
+                initializeFaceDrag('rafa');
+            }, 200);
+        });
+
+        function initializeFaceDrag(user) {
+            const customFace = document.getElementById(user + 'CustomFace');
+            const faceTrack = document.getElementById(user + 'FaceTrack');
+            let isDragging = false;
+            
+            if (!customFace || !faceTrack) {
+                console.log("Elementos para arrastre no encontrados para:", user);
+                return;
+            }
+            
+            customFace.addEventListener('mousedown', startDrag);
+            customFace.addEventListener('touchstart', startDrag);
+            
+            function startDrag(e) { isDragging = true; e.preventDefault(); }
+            
+            document.addEventListener('mousemove', dragFace);
+            document.addEventListener('touchmove', dragFace);
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchend', stopDrag);
+            
+            function dragFace(e) {
+                if (!isDragging) return;
+                const trackRect = faceTrack.getBoundingClientRect();
+                let clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+                const newPosition = clientY - trackRect.top - (customFace.offsetHeight / 2);
+                const maxPosition = trackRect.height - customFace.offsetHeight;
+                
+                if (newPosition >= 0 && newPosition <= maxPosition) {
+                    if (user === 'ximena') {
+                        ximenaFacePosition = newPosition;
+                        customFace.style.top = ximenaFacePosition + 'px';
+                        const calculatedBattery = 100 - Math.round((ximenaFacePosition / maxPosition) * 100);
+                        ximenaCurrentBatteryLevel = calculatedBattery;
+                        ximenaUpdateDisplay();
+                        ximenaSaveToDatabase(ximenaCurrentBatteryLevel, ximenaFacePosition);
+                    } else {
+                        rafaFacePosition = newPosition;
+                        customFace.style.top = rafaFacePosition + 'px';
+                        const calculatedBattery = 100 - Math.round((rafaFacePosition / maxPosition) * 100);
+                        rafaCurrentBatteryLevel = calculatedBattery;
+                        rafaUpdateDisplay();
+                        rafaSaveToDatabase(rafaCurrentBatteryLevel, rafaFacePosition);
+                    }
+                }
+            }
+            
+            function stopDrag() { isDragging = false; }
+        }
+
+        // =============================================
+        // REGISTRAR SERVICE WORKER PARA PWA
+        // =============================================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registrado:', registration.scope);
+                        registration.update();
+                    })
+                    .catch(error => {
+                        console.log('❌ Error registrando Service Worker:', error);
+                    });
+            });
+        }
+
+    </script>
+</body>
+</html>
